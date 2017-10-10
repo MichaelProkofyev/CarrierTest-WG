@@ -53,7 +53,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   angularVelocity: 130
-  speed: 3
+  minSpeed: 0.5
+  maxSpeed: 1.5
+  previousPlaneT: {fileID: 0}
+  keepBackDistance: 2
 --- !u!212 &212205064625512056
 SpriteRenderer:
   m_ObjectHideFlags: 1

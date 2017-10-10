@@ -5,35 +5,41 @@ using UnityEngine;
 public class PlanesManager : SingletonComponent<PlanesManager> {
 
     public PlaneController planePrefab;
+    public int AvailablePlanesNum
+    {
+        get { return availablePlanesNum; }
+        set
+        {
+            availablePlanesNum = value;
+            UIController.Instance.SetAvailablePlanesNumber(availablePlanesNum, maxAvailablePlanesNum);
+        }
+    }
 
-    int availablePlanes = 5;
 
+    int availablePlanesNum = 5;
+    int maxAvailablePlanesNum;
     Transform lastDeployedPlaneT;
+
 
     public void TrySpawnPlane ()
     {
-        if (availablePlanes == 0) return;
+        if (AvailablePlanesNum == 0) return;
 
         PlaneController planeClone = Instantiate(planePrefab, (Vector2)transform.position + Random.insideUnitCircle, Quaternion.identity) as PlaneController;
         planeClone.previousPlaneT = lastDeployedPlaneT;
         lastDeployedPlaneT = planeClone.transform;
-        availablePlanes--;
+        AvailablePlanesNum--;
     }
 
     public void PlaneReturned (PlaneController plane)
     {
         Destroy(plane.gameObject);
-        availablePlanes++;
+        AvailablePlanesNum++;
     }
-     
-    // Use this for initialization
-    void Start () {
-		
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
 
+    void Start ()
+    {
+        maxAvailablePlanesNum = availablePlanesNum;
+        UIController.Instance.SetAvailablePlanesNumber(availablePlanesNum, maxAvailablePlanesNum);
+    }
 }

@@ -2,38 +2,38 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-enum PlaneState
-{
-    ON_PATROL,
-    RETURNING
-}
+
+
 
 public class PlaneController : MonoBehaviour {
 
-    public float angularVelocity = 15;
 
+    public float maxAngularSpeed = 130f;
+    public float minSpeed = .2f, maxSpeed = 1f;
     public Transform previousPlaneT;
-    Transform shipT, targetT;
-
-    public float speed = 1f;
-    //Vector2 velocity = Vector2.zero;
+    public float followOffset = 1f;
 
     PlaneState state;
+    Transform shipT, currentTargetT;
+    float patrolDurationLeft = 30f;
+    float followFuzziness = .01f;
 
-    public float keepBackDistance = 1f;
 
+    enum PlaneState
+    {
+        ON_PATROL,
+        RETURNING
+    }
 
-    float patrolDurationLeft = 3f;
-
-	// Use this for initialization
-	void Start () {
+    void Start ()
+    {
         shipT = ShipController.Instance.transform;
     }
 
-    private void Update()
+    void Update()
     {
-        Vector3 targetPosition;
-        //Update state
+        Vector3 targetPos;
+        //Choose target
         switch (state)
         {
             case PlaneState.ON_PATROL:
@@ -41,64 +41,53 @@ public class PlaneController : MonoBehaviour {
                 if (patrolDurationLeft <= 0)
                 {
                     state = PlaneState.RETURNING;
+                    goto case PlaneState.RETURNING; //questionable
                 }
-                targetPosition = previousPlaneT ? previousPlaneT.position : shipT.position;
+                //If no plane to follow, follow the ship
+                targetPos = previousPlaneT ? previousPlaneT.position : shipT.position;
 
+                //Offset from target
+                targetPos += (Vector3)Random.insideUnitCircle * followFuzziness + (transform.position - targetPos).normalized * followOffset;
 
-                //Getting a point on a ray that's pointing in the player's direction
-                Vector3 directionOfTravel = transform.position - targetPosition;
-                Vector3 targetWithOffset = targetPosition + (Vector3)Random.insideUnitCircle / 100f + directionOfTravel.normalized * keepBackDistance;
-                Debug.DrawLine(targetPosition, targetWithOffset, Color.blue);
-                targetPosition = targetWithOffset;
-
+                Debug.DrawLine(transform.position, targetPos, Color.blue);
                 break;
             case PlaneState.RETURNING:
-
-                bool nearShip = (transform.position - shipT.position).sqrMagnitude < .5f * .5f;
-                if (nearShip)
-                {
-                    PlanesManager.Instance.PlaneReturned(this);
-                }
-                targetPosition = shipT.position;
+                targetPos = shipT.position;
                 break;
             default:
-                targetPosition = Vector3.zero;
+                targetPos = Vector3.zero;
                 break;
         }
 
-        
+        float currentSpeed = maxSpeed; //Max speed is the default speed
 
-        //MOVEMENT
-        Debug.DrawRay(transform.position, transform.up, Color.green); //Current Velocity ray
+        bool isNearTarget = (transform.position - targetPos).sqrMagnitude <= followOffset * followOffset;
+        if (isNearTarget)
+        {
+            switch (state)
+            {
+                case PlaneState.ON_PATROL:
+                    //Descrease the speed if near target
+                    currentSpeed = minSpeed;
+                    break;
+                case PlaneState.RETURNING:
+                    PlanesManager.Instance.PlaneReturned(this);
+                    return;
+            }
+        }
 
-        Vector2 desired_velocity = (targetPosition - transform.position).normalized * speed;
+        //Get steering vector
+        Vector2 desiredVelocity = (targetPos - transform.position).normalized * currentSpeed;
+        float maxRotationStep = maxAngularSpeed * Time.deltaTime;
+        Vector2 steering = Vector3.RotateTowards(transform.up, desiredVelocity, maxRotationStep * Mathf.Deg2Rad, 0);
 
-        float rotationStep = angularVelocity * Mathf.Deg2Rad * Time.deltaTime;
-        Vector2 steering = Vector3.RotateTowards(transform.up, desired_velocity, rotationStep, 0);
+        Debug.DrawRay(transform.position, steering, Color.red);
 
-        float angle = Mathf.Atan2(steering.y, steering.x) * Mathf.Rad2Deg;
-        transform.rotation = Quaternion.AngleAxis(angle - 90f, Vector3.forward);
+        //Rotate
+        float rotationAngle = Mathf.Atan2(steering.y, steering.x) * Mathf.Rad2Deg;
+        transform.rotation = Quaternion.AngleAxis(rotationAngle - 90f, Vector3.forward);
 
-        //Move in the chosen direction
-        transform.position += transform.up * speed * Time.deltaTime;
-
-        Debug.DrawRay(transform.position, steering, Color.red); //Seek ray
-    
+        //Update position
+        transform.position += transform.up * currentSpeed * Time.deltaTime;
     }
-
-    //// Update is called once per frame
-    //void Update2 () {
-    //    Vector2 desired_velocity = (shipT.position - transform.position).normalized * speed;
-
-    //    Vector2 steering = (desired_velocity - velocity).normalized * (angularVelocity * Time.deltaTime);
-    //    //print(Vector2.Angle(desired_velocity, velocity));
-
-    //    velocity += steering;
-    //    transform.position += (Vector3)velocity * Time.deltaTime;
-
-    //    //Rotate to face target
-    //   // Vector2 frameTarget = velocity - (Vector2)transform.position; //NOt used, how to face seek velocity?
-    //    float rot_z = Mathf.Atan2(desired_velocity.y, desired_velocity.x) * Mathf.Rad2Deg;
-    //    transform.rotation = Quaternion.Euler(0f, 0f, rot_z - 90);
-    //}
 }
