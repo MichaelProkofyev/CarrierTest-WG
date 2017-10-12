@@ -52,11 +52,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b3495a7384a3e44ca95afa5db18250c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  angularVelocity: 130
+  maxAngularSpeed: 130
   minSpeed: 0.5
   maxSpeed: 1.5
   previousPlaneT: {fileID: 0}
-  keepBackDistance: 2
+  followOffset: 1
+  landingDistance: 0.5
 --- !u!212 &212205064625512056
 SpriteRenderer:
   m_ObjectHideFlags: 1
