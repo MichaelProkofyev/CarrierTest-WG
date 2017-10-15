@@ -16,7 +16,7 @@ public class PlaneController : MonoBehaviour {
 
     PlaneState state;
     Transform shipT;
-    float patrolDurationLeft = 5f;
+    float patrolDurationLeft = 20f;
     float followFuzziness = .01f;
     
 
@@ -34,6 +34,9 @@ public class PlaneController : MonoBehaviour {
     void Update()
     {
         Vector3 targetPos;
+        float currentSpeed = maxSpeed; //Max speed is the default speed
+        float distanceToShip = Vector3.Magnitude(shipT.position - transform.position);
+
         //Choose target
         switch (state)
         {
@@ -52,10 +55,10 @@ public class PlaneController : MonoBehaviour {
 
                 if (previousPlaneT)
                 {
-                    float distanceToShip = Vector3.Magnitude(targetPos - shipT.position);
                     bool tooCloseToShip = distanceToShip < followOffset;
                     if (tooCloseToShip)
                     {
+                        //Avoid ship when following other plane
                         targetPos +=  (targetPos - shipT.position).normalized * (followOffset - distanceToShip);
                     }
                 }
@@ -65,40 +68,32 @@ public class PlaneController : MonoBehaviour {
                 targetPos += (Vector3)Random.insideUnitCircle * followFuzziness;
 
                 Debug.DrawLine(transform.position, targetPos, Color.blue);
-                break;
-            case PlaneState.RETURNING:
-                targetPos = shipT.position;
-                break;
-            default:
-                targetPos = Vector3.zero;
-                break;
-        }
 
-        float currentSpeed = maxSpeed; //Max speed is the default speed
-
-        switch (state)
-        {
-            case PlaneState.ON_PATROL:
                 bool isNearTarget = (transform.position - targetPos).sqrMagnitude <= followOffset * followOffset;
                 if (isNearTarget)
                 {
                     //Descrease the speed if near target
                     currentSpeed = minSpeed;
                 }
+
                 break;
             case PlaneState.RETURNING:
-                float distanceToShip = (transform.position - targetPos).magnitude;
-                if(distanceToShip < landingDistance * 1.5f) {
-                    currentSpeed = minSpeed;
-                }
+                targetPos = shipT.position;
                 bool canLand = distanceToShip <= landingDistance;
                 if (canLand)
                 {
-                    //Descrease the speed if near target
+                    //Descrease the speed near target for better chance to land
                     currentSpeed = minSpeed;
                     PlanesManager.Instance.PlaneReturned(this);
                     return;
                 }
+                if (distanceToShip < landingDistance * 1.5f)
+                {
+                    currentSpeed = minSpeed;
+                }
+                break;
+            default:
+                targetPos = Vector3.zero;
                 break;
         }
 
